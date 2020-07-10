@@ -1,0 +1,20 @@
+#!/usr/bin/env bpftrace
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Author: Qais Yousef
+ */
+
+tracepoint:power:cpu_frequency
+{
+	$freq = args->state / 1000;
+	$cpu = args->cpu_id;
+
+	@residency[$cpu, $freq] = count();
+}
+
+interval:s:10
+{
+	print(@residency);
+	clear(@residency);
+}
