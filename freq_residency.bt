@@ -10,7 +10,18 @@ tracepoint:power:cpu_frequency
 	$freq = args->state / 1000;
 	$cpu = args->cpu_id;
 
-	@residency[$cpu, $freq] = count();
+	$start = @start[$cpu];
+	$end = nsecs;
+
+	$pfreq = @prev_freq[$cpu];
+
+	if ($start) {
+		$duration = ($end - $start) / 1000000;
+		@residency[$cpu, $pfreq] += $duration;
+	}
+
+	@start[$cpu] = $end;
+	@prev_freq[$cpu] = $freq;
 }
 
 interval:s:10
