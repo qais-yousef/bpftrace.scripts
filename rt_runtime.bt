@@ -14,6 +14,10 @@ tracepoint:sched:sched_switch
 	$pcomm = args->prev_comm;
 	$pprio = 99 - args->prev_prio;
 
+	if (strncmp($ncomm, "migration", 9) == 0) {
+		return;
+	}
+
 	if (args->next_prio < 100) {
 		@start[$npid, $ncomm] = nsecs;
 	}
