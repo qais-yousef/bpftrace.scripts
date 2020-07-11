@@ -26,6 +26,10 @@ tracepoint:power:cpu_frequency
 
 interval:s:10
 {
-	print(@residency);
+	time("%H:%M:%S");
+	printf("   Top 20 Residency[cpu, freq@MHz] in ms..\n");
+	printf("==================================================\n");
+	print(@residency, 20);
+	printf("\n");
 	clear(@residency);
 }

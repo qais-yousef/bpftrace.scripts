@@ -12,7 +12,7 @@ tracepoint:sched:sched_switch
 
 	$ppid = args->prev_pid;
 	$pcomm = args->prev_comm;
-	$pprio = 99 - args->prev_prio;
+	$pprio = args->prev_prio - 101;
 
 	if (strncmp($ncomm, "ksoftirqd", 9) == 0) {
 		@start[$npid, $ncomm] = nsecs;
@@ -30,6 +30,9 @@ tracepoint:sched:sched_switch
 
 interval:s:10
 {
+	time("%H:%M:%S");
+	printf("   Runtime[cpu, nice, pid, comm] in us..\n");
+	printf("================================================\n");
 	print(@runtime);
 	clear(@runtime);
 	clear(@start);

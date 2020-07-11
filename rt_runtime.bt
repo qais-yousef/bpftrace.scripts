@@ -30,6 +30,9 @@ tracepoint:sched:sched_switch
 
 interval:s:10
 {
+	time("%H:%M:%S");
+	printf("   Runtime[cpu, rt_prio, pid, comm] in us..\n");
+	printf("===================================================\n");
 	print(@runtime);
 	clear(@runtime);
 	clear(@start);
