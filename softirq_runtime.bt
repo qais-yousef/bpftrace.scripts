@@ -1,0 +1,36 @@
+#!/usr/bin/env bpftrace
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Author: Qais Yousef
+ */
+
+tracepoint:sched:sched_switch
+{
+	$npid = args->next_pid;
+	$ncomm = args->next_comm;
+
+	$ppid = args->prev_pid;
+	$pcomm = args->prev_comm;
+	$pprio = 99 - args->prev_prio;
+
+	if (strncmp($ncomm, "ksoftirqd", 9) == 0) {
+		@start[$npid, $ncomm] = nsecs;
+	}
+
+	if (strncmp($pcomm, "ksoftirqd", 9) == 0) {
+		$start = @start[$ppid, $pcomm];
+
+		if ($start) {
+			$runtime = (nsecs - $start) / 1000;
+			@runtime[cpu, $pprio, $ppid, $pcomm] += $runtime;
+		}
+	}
+}
+
+interval:s:10
+{
+	print(@runtime);
+	clear(@runtime);
+	clear(@start);
+}
