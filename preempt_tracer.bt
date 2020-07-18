@@ -1,0 +1,36 @@
+#!/usr/bin/env bpftrace
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Author: Qais Yousef
+ */
+
+tracepoint:preemptirq:preempt_disable
+{
+	@start[cpu] = nsecs;
+	@stack[cpu] = kstack();
+}
+
+tracepoint:preemptirq:preempt_enable
+{
+	$start = @start[cpu];
+	$end = nsecs;
+
+	if ($start) {
+		$latency = ($end - $start) / 1000;
+
+		@latency[cpu] = hist($latency);
+
+		if ($latency > 1000) {
+			$stack = @stack[cpu];
+
+			printf("%d %d %s: %d\n", cpu, pid, comm, $latency);
+
+			printf("Disable stack:\n");
+			printf("%s\n", $stack);
+
+			printf("Enable stack:\n");
+			print(kstack());
+		}
+	}
+}
