@@ -1,0 +1,58 @@
+#!/usr/bin/env bpftrace
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Author: Qais Yousef
+ */
+
+tracepoint:irq:softirq_entry
+{
+	@start[cpu] = nsecs;
+	@stack[cpu] = kstack();
+
+	if (args->vec == 0) {
+		@action[cpu] = "HI";
+	} else if (args->vec == 1) {
+		@action[cpu] = "TIMER";
+	} else if (args->vec == 2) {
+		@action[cpu] = "NET_TX";
+	} else if (args->vec == 3) {
+		@action[cpu] = "NET_RX";
+	} else if (args->vec == 4) {
+		@action[cpu] = "BLOCK";
+	} else if (args->vec == 5) {
+		@action[cpu] = "IRQ_POLL";
+	} else if (args->vec == 6) {
+		@action[cpu] = "TASKLET";
+	} else if (args->vec == 7) {
+		@action[cpu] = "SCHED";
+	} else if (args->vec == 8) {
+		@action[cpu] = "HRTIMER";
+	} else if (args->vec == 9) {
+		@action[cpu] = "RCU";
+	}
+}
+
+tracepoint:irq:softirq_exit
+{
+	$start = @start[cpu];
+	$end = nsecs;
+
+	if ($start) {
+		$latency = ($end - $start) / 1000;
+
+		@latency[cpu] = hist($latency);
+
+		if ($latency > 1000) {
+			$stack = @stack[cpu];
+
+			printf("[%s] %d %d %s: %d\n", @action[cpu], cpu, pid, comm, $latency);
+
+			printf("Entry stack:\n");
+			printf("%s\n", $stack);
+
+			printf("Exit stack:\n");
+			print(kstack());
+		}
+	}
+}
