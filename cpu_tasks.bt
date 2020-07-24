@@ -1,0 +1,63 @@
+#!/usr/bin/env bpftrace
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ *
+ * Author: Qais Yousef
+ */
+
+BEGIN
+{
+	@cpu = 0;
+	@interval = 10;
+	@counter = 0;
+
+	if ($1) {
+		@cpu = $1;
+	}
+
+	if ($2) {
+		@interval = $2;
+	}
+}
+
+tracepoint:sched:sched_switch
+{
+	$npid = args->next_pid;
+	$ncomm = args->next_comm;
+
+	$ppid = args->prev_pid;
+	$pcomm = args->prev_comm;
+	$pprio = args->prev_prio;
+
+	if (cpu != @cpu) {
+		return;
+	}
+
+	// Record next pid start time
+	@start[$npid, $ncomm] = nsecs;
+
+	// Calculate prev pid runtime
+	$start = @start[$ppid, $pcomm];
+	if ($start) {
+		$runtime = (nsecs - $start) / 1000000;
+		@runtime[cpu, $pprio, $ppid, $pcomm] += $runtime;
+	}
+}
+
+interval:s:1
+{
+	@counter += 1;
+	if (@counter < @interval) {
+		return;
+	}
+
+	@counter = 0;
+
+	time("%H:%M:%S");
+	printf("   Runtime[cpu, prio, pid, comm] in ms..\n");
+	printf("================================================\n");
+	print(@runtime, 20);
+	printf("\n");
+	clear(@runtime);
+	clear(@start);
+}
